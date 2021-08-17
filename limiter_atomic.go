@@ -21,6 +21,7 @@
 package ratelimit // import "go.uber.org/ratelimit"
 
 import (
+	"errors"
 	"time"
 
 	"sync/atomic"
@@ -51,7 +52,7 @@ func newAtomicBased(rate int, opts ...Option) *atomicLimiter {
 	perRequest := config.per / time.Duration(rate)
 	l := &atomicLimiter{
 		perRequest: perRequest,
-		maxSlack:   -1 * time.Duration(config.slack) * perRequest,
+		maxSlack:   1 * time.Duration(config.slack) * perRequest,
 		clock:      config.clock,
 	}
 
@@ -65,7 +66,7 @@ func newAtomicBased(rate int, opts ...Option) *atomicLimiter {
 
 // Take blocks to ensure that the time spent between multiple
 // Take calls is on average time.Second/rate.
-func (t *atomicLimiter) Take() time.Time {
+func (t *atomicLimiter) Take() (time.Time, error) {
 	var (
 		newState state
 		taken    bool
@@ -96,8 +97,11 @@ func (t *atomicLimiter) Take() time.Time {
 		// We shouldn't allow sleepFor to get too negative, since it would mean that
 		// a service that slowed down a lot for a short period of time would get
 		// a much higher RPS following that.
-		if newState.sleepFor < t.maxSlack {
-			newState.sleepFor = t.maxSlack
+		if newState.sleepFor < -t.maxSlack {
+			newState.sleepFor = -t.maxSlack
+		}
+		if newState.sleepFor > t.maxSlack {
+			return time.Now(), errors.New("not pass")
 		}
 		if newState.sleepFor > 0 {
 			newState.last = newState.last.Add(newState.sleepFor)
@@ -105,6 +109,7 @@ func (t *atomicLimiter) Take() time.Time {
 		}
 		taken = atomic.CompareAndSwapPointer(&t.state, previousStatePointer, unsafe.Pointer(&newState))
 	}
+	//fmt.Printf("sleep %v\n", interval)
 	t.clock.Sleep(interval)
-	return newState.last
+	return newState.last, nil
 }

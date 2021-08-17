@@ -65,7 +65,7 @@ func runner(b *testing.B, name string, procs int, ng int, limiter Limiter, count
 				}
 				localCnt := 0
 				for i := 0; i < quota; i++ {
-					res := limiter.Take()
+					res, _ := limiter.Take()
 					localCnt += res.Nanosecond()
 				}
 				count.Add(int64(localCnt))

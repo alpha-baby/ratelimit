@@ -12,7 +12,7 @@ func Example() {
 
 	prev := time.Now()
 	for i := 0; i < 10; i++ {
-		now := rl.Take()
+		now, _:= rl.Take()
 		if i > 0 {
 			fmt.Println(i, now.Sub(prev))
 		}

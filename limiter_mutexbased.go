@@ -50,7 +50,7 @@ func newMutexBased(rate int, opts ...Option) *mutexLimiter {
 
 // Take blocks to ensure that the time spent between multiple
 // Take calls is on average time.Second/rate.
-func (t *mutexLimiter) Take() time.Time {
+func (t *mutexLimiter) Take() (time.Time, error) {
 	t.Lock()
 	defer t.Unlock()
 
@@ -59,7 +59,7 @@ func (t *mutexLimiter) Take() time.Time {
 	// If this is our first request, then we allow it.
 	if t.last.IsZero() {
 		t.last = now
-		return t.last
+		return t.last, nil
 	}
 
 	// sleepFor calculates how much time we should sleep based on
@@ -84,5 +84,5 @@ func (t *mutexLimiter) Take() time.Time {
 		t.last = now
 	}
 
-	return t.last
+	return t.last, nil
 }

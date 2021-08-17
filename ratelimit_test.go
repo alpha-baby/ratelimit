@@ -1,6 +1,7 @@
 package ratelimit
 
 import (
+	"fmt"
 	"sync"
 	"testing"
 	"time"
@@ -277,4 +278,48 @@ func TestSlack(t *testing.T) {
 			})
 		})
 	}
+}
+
+func TestLeakyBuketRatelimit(t *testing.T) {
+	rl := New(1, WithSlack(20)) // per second
+
+	prev := time.Now()
+	for i := 0; i < 10; i++ {
+		now, err := rl.Take()
+		if err != nil {
+			fmt.Println("not pass", i, now.Sub(prev))
+			prev = now
+		}else {
+			fmt.Println("pass", i, now.Sub(prev))
+			prev = now
+		}
+
+	}
+	ch := make(chan struct{})
+	time.Sleep(time.Second * 20)
+	for i := 0; i < 100; i++ {
+		go func(i int) {
+			now, err := rl.Take()
+			if err != nil {
+				fmt.Println("not pass", i, now.Sub(prev))
+
+			}else {
+				fmt.Println("pass", i, now.Sub(prev))
+
+			}
+		}(i)
+	}
+
+	// Output:
+	// 0 0
+	// 1 10ms
+	// 2 10ms
+	// 3 10ms
+	// 4 10ms
+	// 5 10ms
+	// 6 10ms
+	// 7 10ms
+	// 8 10ms
+	// 9 10ms
+	<-ch
 }

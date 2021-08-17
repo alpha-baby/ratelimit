@@ -8,6 +8,8 @@ Create a rate limiter with a maximum number of operations to perform per second.
 Call Take() before each operation. Take will sleep until you can continue.
 
 ```go
+package main
+
 import (
 	"fmt"
 	"time"

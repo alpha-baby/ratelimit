@@ -34,7 +34,7 @@ import (
 // may block to throttle the goroutine.
 type Limiter interface {
 	// Take should block to make sure that the RPS is met.
-	Take() time.Time
+	Take() (time.Time, error)
 }
 
 // Clock is the minimum necessary interface to instantiate a rate limiter with
@@ -130,6 +130,6 @@ func NewUnlimited() Limiter {
 	return unlimited{}
 }
 
-func (unlimited) Take() time.Time {
-	return time.Now()
+func (unlimited) Take() (time.Time, error) {
+	return time.Now(), nil
 }
